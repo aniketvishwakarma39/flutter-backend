@@ -3,12 +3,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import math
 from core.models import UserLocation
-
-# 🔥 GLOBAL ACCESS TOKEN CACHE
 ACCESS_TOKEN = None
 
 
-# 📍 DISTANCE FUNCTION
 def calculate_distance(lat1, lon1, lat2, lon2):
     R = 6371000
 
@@ -24,7 +21,6 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return R * c
 
 
-# 🔥 GET ACCESS TOKEN (ONLY ONCE)
 def get_access_token():
     global ACCESS_TOKEN
 
@@ -49,7 +45,7 @@ def get_access_token():
     return ACCESS_TOKEN
 
 
-# 🔔 SEND NOTIFICATION
+
 def send_notification(token, lat, lng):
     import requests
 
@@ -75,13 +71,12 @@ def send_notification(token, lat, lng):
 
         response = requests.post(url, headers=headers, json=data, timeout=5)
 
-        print("📤 FCM RESPONSE:", response.text)
+        print("? FCM RESPONSE:", response.text)
 
     except Exception as e:
-        print("❌ FCM ERROR:", e)
+        print(" FCM ERROR:", e)
 
 
-# 🚨 ALERT API
 @csrf_exempt
 def alert(request):
     if request.method == "POST":
@@ -97,7 +92,7 @@ def alert(request):
 
             print("🚨 ALERT:", lat, lng)
 
-            # 🔥 SAFE DB WRITE (NO LOCK CRASH)
+        
             try:
                 UserLocation.objects.update_or_create(
                     token=token,
@@ -110,7 +105,7 @@ def alert(request):
             except Exception as e:
                 print("❌ DB ERROR:", e)
 
-            # 🔥 FETCH USERS ONCE
+        
             users = list(UserLocation.objects.all())
 
             nearby_users = []
@@ -118,18 +113,18 @@ def alert(request):
             for user in users:
                 distance = calculate_distance(lat, lng, user.latitude, user.longitude)
 
-                if distance <= 100000:  # 🔥 TEST MODE (100km)
+                if distance <= 100000:  
                     nearby_users.append(user)
 
             print("👥 Nearby Users:", len(nearby_users))
 
-            # 🔥 EXTRACT TOKENS (DB se alag)
+      
             tokens = [
                 user.token for user in nearby_users
                 if user.token and len(user.token) > 100
             ]
 
-            # 🔔 SEND NOTIFICATION (NO DB LOCK)
+         
             for t in tokens:
                 try:
                     send_notification(t, lat, lng)
